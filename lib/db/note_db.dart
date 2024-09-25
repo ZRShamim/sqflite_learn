@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:sqflite/sqflite.dart';
 import 'package:sqflite_learn/model/note_model.dart';
 import 'package:path/path.dart';
@@ -40,6 +42,67 @@ CREATE TABLE $tableNotes (
   ${NoteFields.createdTime} $textType,
 )
 ''');
+  }
+
+  Future<Note> create(Note note) async {
+    final db = await instance.database;
+
+    final id = await db.insert(tableNotes, note.toJson());
+
+    return note.copy(id: id);
+  }
+
+  Future<Note> read(int id) async {
+    final db = await instance.database;
+
+    final maps = await db.query(
+      tableNotes,
+      columns: NoteFields.values,
+      where: '${NoteFields.id} = ?',
+      whereArgs: [id],
+    );
+
+    if (maps.isNotEmpty) {
+      return Note.fromJson(maps.first);
+    } else {
+      throw Exception('ID $id Not Found');
+    }
+  }
+
+  Future<List<Note>> readAll() async {
+    final db = await instance.database;
+    const orderBy = '${NoteFields.createdTime} ASC';
+
+    final maps = await db.query(
+      tableNotes,
+      orderBy: orderBy,
+    );
+    if (maps.isNotEmpty) {
+      return maps.map((json) => Note.fromJson(json)).toList();
+    } else {
+      throw Exception('Data Not Found');
+    }
+  }
+
+  Future<int> update(Note note) async {
+    final db = await instance.database;
+
+    return db.update(
+      tableNotes,
+      note.toJson(),
+      where: '${NoteFields.id} = ?',
+      whereArgs: [note.id],
+    );
+  }
+
+  Future<int> delete(int id) async {
+    final db = await instance.database;
+
+    return db.delete(
+      tableNotes,
+      where: '${NoteFields.id} = ?',
+      whereArgs: [id],
+    );
   }
 
   Future close() async {
